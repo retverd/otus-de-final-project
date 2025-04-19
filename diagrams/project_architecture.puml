@@ -1,4 +1,4 @@
-@startuml
+@startuml project_architecture.puml
 !include <C4/C4_Container>
 
 title
