@@ -1,0 +1,45 @@
+@startuml
+!include <C4/C4_Container>
+
+title
+  <b>Предварительная архитектура итогового проекта</b>
+end title
+
+System_Boundary(cbr, "Сайт ЦБ РФ") {
+    System_Ext(cbr_api, "Открытое API")
+}
+
+System_Boundary(exch, "Сайт обменника") {
+    System_Ext(exch_page, "Веб-страница с курсами")
+}
+
+System_Boundary(prj, "Проект") {
+    System_Boundary(orch, "Dagster") {
+        System(asset_e, "Extraction", "Извлечение данных из источников и размещение в Staging-таблицы")
+        System(asset_t, "Transformation", "Трансформация данных из Staging-таблиц в Data Vault")
+        System(asset_l, "Load", "Загрузка данных из Data Vault в витрины")
+    }
+    SystemDb(postgres, "PostgreSQL", "OLTP хранилище"){
+        SystemDb(stage, "Stage", "Данные из внешних источников как есть")
+        SystemDb(dv, "Data Vault", "Связанные нормализованные данные")
+    }
+    SystemDb(clickhouse, "Clickhouse", "OLAP хранилище")
+    System(metabase, "Metabase", "Средство визуализации данных")
+}
+
+Person(user, "Пользователь", $sprite = person2)
+
+Rel(cbr_api, asset_e, "Запрос данных", "REST")
+Rel(exch_page, asset_e, "Разбор страницы", "https")
+Rel(asset_e, stage, "Сохранение данных", "ORM")
+
+Rel(stage, asset_t, "Чтение данных", "ORM")
+Rel(asset_t, dv, "Сохранение данных", "ORM")
+
+Rel(dv, asset_l, "Чтение данных", "ORM")
+Rel(asset_l, clickhouse, "Сохранение данных", "ORM")
+
+Rel_D(clickhouse, metabase, "Чтение данных", "JDBC")
+Rel_L(user, metabase, "Запрос визуализации", "https")
+
+@enduml
