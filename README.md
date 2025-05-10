@@ -10,6 +10,8 @@
 
 ### PostgreSQL
 
+Официальный образ PostgreSQL 17.4-alpine3.21 с указанием логина и пароля для администратора, а также ограничением выделенных ресурсов.
+
 ### ClickHouse
 
 2 экземпляра ClickHouse с использованием 3 выделенных ClickHouse Keeper: 1 шард с репликацией между clickhouse-01 и clickhouse-02.
@@ -20,4 +22,4 @@
 
 ### Metabase
 
-Официальный образ MetaBase c хранением настроек в базе PostgreSQL.
+Официальный образ MetaBase v0.54.5.3 c хранением настроек в базе PostgreSQL.
