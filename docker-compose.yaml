@@ -99,6 +99,31 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+  dagster-webserver:
+    image: retverd/dagster-webserver:${DAGSTER_BASE_IMG}
+    container_name: dagster_webserver
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: ./dagster/Dockerfile
+      args:
+        DAGSTER_HOME: ${DAGSTER_HOME}
+        DAGSTER_BASE_IMG: ${DAGSTER_BASE_IMG}
+    hostname: dagster-webserver
+    volumes: 
+      - ./dagster/payload:${DAGSTER_HOME}payload:ro
+      - ./dagster/data:${DAGSTER_HOME}data:rw
+    ports:
+      - ${DAGSTER_PORT}:3000
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      DAGSTER_DB_NAME: ${DAGSTER_DB_NAME}
+      DAGSTER_DB_USER: ${DAGSTER_DB_USER}
+      DAGSTER_DB_PASS: ${DAGSTER_DB_PASS}
+    restart: unless-stopped
   postgres:
     image: "postgres:${POSTGRES_VER:-latest}"
     container_name: postgres
