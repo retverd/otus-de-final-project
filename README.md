@@ -2,7 +2,9 @@
 
 ## Предварительная архитектура проекта
 
-![Предварительная архитектура проекта](https://www.plantuml.com/plantuml/png/BOwx3S9G301xfe014lTKsGGPsyapolEB_87r2HBLNN75BP7eMNs_tDHeBvPhoppY3k3ucJVDLiyASHgMOZdJwE2IRt66aHKJoxIguJuTFbv22IvhG1FaW8vgm8C2M75px07_we5EJVEqSfcFty0YnYU_)
+![Предварительная архитектура проекта - онлайн](https://www.plantuml.com/plantuml/png/BOwx3S9G301xfe014lTKsGGPsyapolEB_87r2HBLNN75BP7eMNs_tDHeBvPhoppY3k3ucJVDLiyASHgMOZdJwE2IRt66aHKJoxIguJuTFbv22IvhG1FaW8vgm8C2M75px07_we5EJVEqSfcFty0YnYU_)
+
+![Предварительная архитектура проекта - из папки](docs/diagrams/project_architecture.png)
 
 ## Особенности реализации
 
