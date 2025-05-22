@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 # Константы с названиями таблиц
 CASH_EXCHANGE_RATES_TABLE = 'public.cash_exchange_rates'
 CBR_EXCHANGE_RATES_TABLE = 'public.cbr_exchange_rates'
-SITE_NAME = 'ligovka.ru'
+LIGOVKA_SITE_NAME = 'ligovka.ru'
 CBR_SITE_NAME = 'cbr.ru'
 
 # TODO: переделать на использование ресурса postgres
@@ -175,7 +175,7 @@ update_schedule = dg.ScheduleDefinition(
     cron_schedule="0 */3 * * *",
 )
 
-# Расписание для получения курса USD на завтра с CBR
+# Расписание для получения курса USDRUB на завтра с ЦБ РФ
 # Задание выполняется каждый день в 16:00 для получения актуальных данных о курсе валюты на завтра
 cbr_update_schedule = dg.ScheduleDefinition(
     name="update_cbr_usd_rate_job",
