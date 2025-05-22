@@ -3,10 +3,14 @@ from bs4 import BeautifulSoup
 import dagster as dg
 import psycopg2
 import requests
+from datetime import datetime, timedelta
+import xml.etree.ElementTree as ET
 
-# Константа с названием таблицы
+# Константы с названиями таблиц
 CASH_EXCHANGE_RATES_TABLE = 'public.cash_exchange_rates'
+CBR_EXCHANGE_RATES_TABLE = 'public.cbr_exchange_rates'
 SITE_NAME = 'ligovka.ru'
+CBR_SITE_NAME = 'cbr.ru'
 
 # TODO: переделать на использование ресурса postgres
 # @dg.resource(config_schema={
@@ -29,7 +33,6 @@ SITE_NAME = 'ligovka.ru'
 #         yield conn
 #     finally:
 #         conn.close()
-
 
 @dg.asset(
     compute_kind="postgres",
@@ -93,6 +96,77 @@ def fetch_usd_rate_from_ligovka(context):
         }
     )
 
+@dg.asset(
+    compute_kind="postgres",
+    group_name="ingestion",
+)
+def fetch_usd_rate_from_cbr(context):
+    '''Получает курс USD на завтра с сайта ЦБ РФ и сохраняет в таблицу PostgreSQL'''
+    # Получаем дату на завтра
+    tomorrow = datetime.now() + timedelta(days=2)
+    date_str = tomorrow.strftime('%d/%m/%Y')
+    
+    url = f'https://www.cbr.ru/scripts/XML_dynamic.asp?date_req1={date_str}&date_req2={date_str}&VAL_NM_RQ=R01235'
+    context.log.info(f'Получение курса USDRUB на {date_str} с {url}')
+    
+    try:
+        response = requests.get(url)
+        if response.status_code != 200:
+            context.log.error(f'Не удалось загрузить страницу, код ответа: {response.status_code}')
+            return dg.MaterializeResult()
+            
+        # Парсим XML ответ
+        root = ET.fromstring(response.text)
+        if not root.findall('.//Record'):
+            context.log.warning(f'Курс на {date_str} не установлен')
+            return dg.MaterializeResult()
+            
+        # Получаем курс
+        rate = float(root.find('.//Value').text.replace(',', '.'))
+        context.log.info(f'Найден курс USD на {date_str}: {rate}')
+
+        # Получаем параметры подключения из переменных окружения
+        db_params = {
+            "host": getenv("POSTGRES_HOST"),
+            "port": getenv("POSTGRES_PORT"),
+            "database": getenv("DATA_DB_NAME"),
+            "user": getenv("DATA_DB_USER"),
+            "password": getenv("DATA_DB_PASS")
+        }
+
+        # Подключаемся к PostgreSQL
+        with psycopg2.connect(**db_params) as conn:
+            with conn.cursor() as cur:
+                # Создаем таблицу с правильными типами данных
+                cur.execute(
+                    f'''
+                    CREATE TABLE IF NOT EXISTS {CBR_EXCHANGE_RATES_TABLE} (
+                        rid uuid NOT NULL DEFAULT gen_random_uuid(),
+                        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        exchange_name VARCHAR(255) NOT NULL,
+                        currency_code VARCHAR(6) NOT NULL,
+                        rate_date DATE NOT NULL,
+                        rate NUMERIC NOT NULL
+                    );
+                    '''
+                )
+                cur.execute(
+                    f'INSERT INTO {CBR_EXCHANGE_RATES_TABLE} (exchange_name, currency_code, rate_date, rate) VALUES (%s, %s, %s, %s)',
+                    (CBR_SITE_NAME, 'USDRUB', tomorrow.date(), rate)
+                )
+                conn.commit()
+                context.log.info(f'Новый курс USDRUB от {CBR_SITE_NAME} на {date_str} добавлен в базу данных')
+                
+        return dg.MaterializeResult(
+            metadata={
+                "rate": dg.MetadataValue.float(rate),
+                "date": dg.MetadataValue.text(date_str),
+            }
+        )
+    except Exception as e:
+        context.log.error(f"Ошибка при получении курса с CBR: {str(e)}")
+        return dg.MaterializeResult()
+
 # Расписание для регулярного обновления курса USDRUB
 # Задание выполняется каждые три часа для получения актуальных данных о курсе валюты
 update_schedule = dg.ScheduleDefinition(
@@ -101,10 +175,17 @@ update_schedule = dg.ScheduleDefinition(
     cron_schedule="0 */3 * * *",
 )
 
+# Расписание для получения курса USD на завтра с CBR
+# Задание выполняется каждый день в 16:00 для получения актуальных данных о курсе валюты на завтра
+cbr_update_schedule = dg.ScheduleDefinition(
+    name="update_cbr_usd_rate_job",
+    target=dg.AssetSelection.keys("fetch_usd_rate_from_cbr"),
+    cron_schedule="0 16 * * *",
+)
 
 # Создаем Definitions с зарегистрированными активами
 defs = dg.Definitions(
-    assets=[fetch_usd_rate_from_ligovka],
-    schedules=[update_schedule],
+    assets=[fetch_usd_rate_from_ligovka, fetch_usd_rate_from_cbr],
+    schedules=[update_schedule, cbr_update_schedule],
     # resources={"postgres": postgres}
 )
