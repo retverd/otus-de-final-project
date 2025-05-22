@@ -103,7 +103,7 @@ def fetch_usd_rate_from_ligovka(context):
 def fetch_usd_rate_from_cbr(context):
     '''Получает курс USD на завтра с сайта ЦБ РФ и сохраняет в таблицу PostgreSQL'''
     # Получаем дату на завтра
-    tomorrow = datetime.now() + timedelta(days=2)
+    tomorrow = datetime.now() + timedelta(days=1)
     date_str = tomorrow.strftime('%d/%m/%Y')
     
     url = f'https://www.cbr.ru/scripts/XML_dynamic.asp?date_req1={date_str}&date_req2={date_str}&VAL_NM_RQ=R01235'
