@@ -82,10 +82,10 @@ def fetch_usd_rate_from_ligovka(context):
                 )
                 cur.execute(
                     f'INSERT INTO {CASH_EXCHANGE_RATES_TABLE} (exchange_name, currency_code, purchase_rate, sale_rate) VALUES (%s, %s, %s, %s)',
-                    (SITE_NAME, 'USDRUB', purchase, sale)
+                    (LIGOVKA_SITE_NAME, 'USDRUB', purchase, sale)
                 )
                 conn.commit()
-                context.log.info(f'Новый курс USDRUB от {SITE_NAME} добавлен в базу данных')
+                context.log.info(f'Новый курс USDRUB от {LIGOVKA_SITE_NAME} добавлен в базу данных')
     except Exception as e:
         raise Exception(f"Ошибка при работе с PostgreSQL: {str(e)}")
 
