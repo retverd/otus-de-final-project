@@ -15,7 +15,7 @@ CBR_SITE_NAME = 'cbr.ru'
 # Константы с sql-процедурами для создания таблиц
 CASH_EXCHANGE_RATES_TABLE_SQL = f'''
 CREATE TABLE IF NOT EXISTS {CASH_EXCHANGE_RATES_TABLE} (
-    rid uuid NOT NULL DEFAULT gen_random_uuid(),
+    rid uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     exchange_name VARCHAR(255) NOT NULL,
     currency_code VARCHAR(6) NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS {CASH_EXCHANGE_RATES_TABLE} (
 
 CBR_EXCHANGE_RATES_TABLE_SQL = f'''
 CREATE TABLE IF NOT EXISTS {CBR_EXCHANGE_RATES_TABLE} (
-    rid uuid NOT NULL DEFAULT gen_random_uuid(),
+    rid uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     exchange_name VARCHAR(255) NOT NULL,
     currency_code VARCHAR(6) NOT NULL,
