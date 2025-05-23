@@ -7,10 +7,33 @@ from datetime import datetime, timedelta
 import xml.etree.ElementTree as ET
 
 # Константы с названиями таблиц
-CASH_EXCHANGE_RATES_TABLE = 'public.cash_exchange_rates'
-CBR_EXCHANGE_RATES_TABLE = 'public.cbr_exchange_rates'
+CASH_EXCHANGE_RATES_TABLE = 'stage.cash_exchange_rates'
+CBR_EXCHANGE_RATES_TABLE = 'stage.cbr_exchange_rates'
 LIGOVKA_SITE_NAME = 'ligovka.ru'
 CBR_SITE_NAME = 'cbr.ru'
+
+# Константы с sql-процедурами для создания таблиц
+CASH_EXCHANGE_RATES_TABLE_SQL = f'''
+CREATE TABLE IF NOT EXISTS {CASH_EXCHANGE_RATES_TABLE} (
+    rid uuid NOT NULL DEFAULT gen_random_uuid(),
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    exchange_name VARCHAR(255) NOT NULL,
+    currency_code VARCHAR(6) NOT NULL,
+    purchase_rate NUMERIC NOT NULL,
+    sale_rate NUMERIC NOT NULL
+);
+'''
+
+CBR_EXCHANGE_RATES_TABLE_SQL = f'''
+CREATE TABLE IF NOT EXISTS {CBR_EXCHANGE_RATES_TABLE} (
+    rid uuid NOT NULL DEFAULT gen_random_uuid(),
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    exchange_name VARCHAR(255) NOT NULL,
+    currency_code VARCHAR(6) NOT NULL,
+    rate_date DATE NOT NULL,
+    rate NUMERIC NOT NULL
+);
+'''
 
 # TODO: переделать на использование ресурса postgres
 # @dg.resource(config_schema={
@@ -68,24 +91,13 @@ def fetch_usd_rate_from_ligovka(context):
         with psycopg2.connect(**db_params) as conn:
             with conn.cursor() as cur:
                 # Создаем таблицу с правильными типами данных
-                cur.execute(
-                    f'''
-                    CREATE TABLE IF NOT EXISTS {CASH_EXCHANGE_RATES_TABLE} (
-                        rid uuid NOT NULL DEFAULT gen_random_uuid(),
-                        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                        exchange_name VARCHAR(255) NOT NULL,
-                        currency_code VARCHAR(6) NOT NULL,
-                        purchase_rate NUMERIC NOT NULL,
-                        sale_rate NUMERIC NOT NULL
-                    );
-                    '''
-                )
+                cur.execute(CASH_EXCHANGE_RATES_TABLE_SQL)
                 cur.execute(
                     f'INSERT INTO {CASH_EXCHANGE_RATES_TABLE} (exchange_name, currency_code, purchase_rate, sale_rate) VALUES (%s, %s, %s, %s)',
                     (LIGOVKA_SITE_NAME, 'USDRUB', purchase, sale)
                 )
                 conn.commit()
-                context.log.info(f'Новый курс USDRUB от {LIGOVKA_SITE_NAME} добавлен в базу данных')
+                context.log.info(f'Новый курс USDRUB от {LIGOVKA_SITE_NAME} добавлен в таблицу {CASH_EXCHANGE_RATES_TABLE}')
     except Exception as e:
         raise Exception(f"Ошибка при работе с PostgreSQL: {str(e)}")
 
@@ -138,24 +150,13 @@ def fetch_usd_rate_from_cbr(context):
         with psycopg2.connect(**db_params) as conn:
             with conn.cursor() as cur:
                 # Создаем таблицу с правильными типами данных
-                cur.execute(
-                    f'''
-                    CREATE TABLE IF NOT EXISTS {CBR_EXCHANGE_RATES_TABLE} (
-                        rid uuid NOT NULL DEFAULT gen_random_uuid(),
-                        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                        exchange_name VARCHAR(255) NOT NULL,
-                        currency_code VARCHAR(6) NOT NULL,
-                        rate_date DATE NOT NULL,
-                        rate NUMERIC NOT NULL
-                    );
-                    '''
-                )
+                cur.execute(CBR_EXCHANGE_RATES_TABLE_SQL)
                 cur.execute(
                     f'INSERT INTO {CBR_EXCHANGE_RATES_TABLE} (exchange_name, currency_code, rate_date, rate) VALUES (%s, %s, %s, %s)',
                     (CBR_SITE_NAME, 'USDRUB', tomorrow.date(), rate)
                 )
                 conn.commit()
-                context.log.info(f'Новый курс USDRUB от {CBR_SITE_NAME} на {date_str} добавлен в базу данных')
+                context.log.info(f'Новый курс USDRUB от {CBR_SITE_NAME} на {date_str} добавлен в таблицу {CBR_EXCHANGE_RATES_TABLE}')
                 
         return dg.MaterializeResult(
             metadata={
