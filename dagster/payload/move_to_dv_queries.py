@@ -1,4 +1,4 @@
-from payload.create_tables_queries import *
+from payload.create_db_objects_queries import *
 
 START_DATE = '1900-01-01'
 

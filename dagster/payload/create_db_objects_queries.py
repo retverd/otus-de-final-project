@@ -5,17 +5,20 @@ CBR_SITE_NAME = 'cbr.ru'
 # Константы с названиями схем в БД
 STAGE_SCHEMA = 'stage'
 DATA_VAULT_SCHEMA = 'data_vault'
+DATA_MARKETING_SCHEMA = 'data_marketing'
 
 # Константы с sql-процедурами для создания схем в БД
 CREATE_STAGE_SCHEMA_SQL = f'CREATE SCHEMA IF NOT EXISTS {STAGE_SCHEMA};'
 
 CREATE_DATA_VAULT_SCHEMA_SQL = f'CREATE SCHEMA IF NOT EXISTS {DATA_VAULT_SCHEMA};'
 
+CREATE_DATA_MARKETING_SCHEMA_SQL = f'CREATE SCHEMA IF NOT EXISTS {DATA_MARKETING_SCHEMA};'
+
 # Константы с названиями таблиц в Stage
 STAGE_CASH_EXCHANGE_RATES_TABLE = f'{STAGE_SCHEMA}.cash_exchange_rates'
 STAGE_CBR_EXCHANGE_RATES_TABLE = f'{STAGE_SCHEMA}.cbr_exchange_rates'
 
-# Константы с полными именами таблиц Data Vault
+# Константы с названиями таблиц в Data Vault
 HUB_CURRENCY_PAIR_TABLE = f'{DATA_VAULT_SCHEMA}.hub_currency_pair'
 HUB_RATE_TYPE_TABLE = f'{DATA_VAULT_SCHEMA}.hub_rate_type'
 LINK_EXCHANGE_RATE_TABLE = f'{DATA_VAULT_SCHEMA}.link_exchange_rate'
@@ -86,4 +89,20 @@ CREATE TABLE IF NOT EXISTS {SAT_EXCHANGE_RATE_VALUE_TABLE} (
     record_source VARCHAR(100),
     FOREIGN KEY (link_hk) REFERENCES {LINK_EXCHANGE_RATE_TABLE}(link_hk)
 );
+'''
+# Константы с sql-процедурами для создания Data Marketing представлений
+VW_EXCHANGE_RATE_VALUES_SQL = f'''
+CREATE OR REPLACE VIEW {DATA_MARKETING_SCHEMA}.vw_exchange_rate_value AS
+SELECT
+	vals.record_source as source,
+	hcp.currency_pair_id as currency_pair,
+	hrt.rate_type_id as rate_type,
+	vals.rate_value as rate,
+	vals.rate_date,
+	vals.rate_timestamp
+FROM {SAT_EXCHANGE_RATE_VALUE_TABLE} as vals
+LEFT JOIN {LINK_EXCHANGE_RATE_TABLE} ler ON ler.link_hk = vals.link_hk
+LEFT JOIN {HUB_CURRENCY_PAIR_TABLE} hcp ON hcp.currency_pair_hk = ler.currency_pair_hk
+LEFT JOIN {HUB_RATE_TYPE_TABLE} hrt ON hrt.rate_type_hk = ler.rate_type_hk
+ORDER BY vals.rate_date DESC, vals.rate_timestamp DESC;
 '''

@@ -5,7 +5,7 @@ from psycopg2 import connect
 from requests import get
 from datetime import datetime, timedelta
 import xml.etree.ElementTree as ET
-from payload.create_tables_queries import *
+from payload.create_db_objects_queries import *
 from payload.move_to_dv_queries import *
 
 # TODO: переделать на использование ресурса postgres
@@ -234,5 +234,40 @@ def move_ligovka_rates_to_dv(context):
 
     except Exception as e:
         raise Exception(f"Ошибка при загрузке данных в Data Vault: {str(e)}")
+
+    return dg.MaterializeResult()
+
+@dg.asset(
+    compute_kind="postgres",
+    group_name="visualization",
+    deps=["move_cbr_rates_to_dv", "move_ligovka_rates_to_dv"],
+    automation_condition=dg.AutomationCondition.eager(),
+)
+def create_data_marketing_views(context):
+    '''Создает представления в схеме Data Marketing'''
+    
+    db_params = {
+        "host": getenv("POSTGRES_HOST"),
+        "port": getenv("POSTGRES_PORT"),
+        "database": getenv("DATA_DB_NAME"),
+        "user": getenv("DATA_DB_USER"),
+        "password": getenv("DATA_DB_PASS")
+    }
+
+    try:
+        with connect(**db_params) as conn:
+            with conn.cursor() as cur:
+                # Создаем схему Data Marketing, если она не существует
+                cur.execute(CREATE_DATA_MARKETING_SCHEMA_SQL)
+
+                # Создаем представление, если оно не существует
+                # TODO: проверить, было ли реально создано представление и доработать вывод в лог
+                cur.execute(VW_EXCHANGE_RATE_VALUES_SQL)
+
+                conn.commit()
+                context.log.info(f"Представление {VW_EXCHANGE_RATE_VALUES_SQL} успешно создано")
+
+    except Exception as e:
+        raise Exception(f"Ошибка при создании представления в схеме Data Marketing: {str(e)}")
 
     return dg.MaterializeResult()
