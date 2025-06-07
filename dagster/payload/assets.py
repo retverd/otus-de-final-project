@@ -6,6 +6,7 @@ from requests import get
 from datetime import datetime, timedelta
 import xml.etree.ElementTree as ET
 from payload.create_tables_queries import *
+from payload.move_to_dv_queries import *
 
 # TODO: переделать на использование ресурса postgres
 # @dg.resource(config_schema={
@@ -139,3 +140,87 @@ def fetch_usd_rate_from_cbr(context):
     except Exception as e:
         context.log.error(f"Ошибка при получении курса с CBR: {str(e)}")
         return dg.MaterializeResult()
+
+@dg.asset(
+    compute_kind="postgres",
+    group_name="transform",
+    deps=["fetch_usd_rate_from_cbr"],
+    automation_condition=dg.AutomationCondition.eager(),
+)
+def move_cbr_rates_to_dv(context):
+    '''Загружает данные из staging.cbr_exchange_rates в Data Vault структуру'''
+    
+    db_params = {
+        "host": getenv("POSTGRES_HOST"),
+        "port": getenv("POSTGRES_PORT"),
+        "database": getenv("DATA_DB_NAME"),
+        "user": getenv("DATA_DB_USER"),
+        "password": getenv("DATA_DB_PASS")
+    }
+
+    try:
+        with connect(**db_params) as conn:
+            with conn.cursor() as cur:
+                # Создаем Hub-таблицы, если они не существуют
+                cur.execute(HUB_CURRENCY_PAIR_SQL)
+                cur.execute(HUB_RATE_TYPE_SQL)
+
+                # Создаем Link-таблицу, если она не существует
+                cur.execute(LINK_EXCHANGE_RATE_SQL)
+
+                # Создаем Satellite-таблицу, если она не существует
+                cur.execute(SAT_EXCHANGE_RATE_VALUE_SQL)
+
+                # Вставляем данные из staging в Data Vault
+                # TODO: проверить, сколько строк реально загружается в таблицу Satellite и доработать вывод в лог
+                cur.execute(MOVE_CBR_RATES_TO_DV)
+                
+                conn.commit()
+                context.log.info(f"Данные из {CBR_SITE_NAME} успешно загружены в Data Vault")
+
+    except Exception as e:
+        raise Exception(f"Ошибка при загрузке данных в Data Vault: {str(e)}")
+
+    return dg.MaterializeResult()
+
+@dg.asset(
+    compute_kind="postgres",
+    group_name="transform",
+    deps=["fetch_usd_rate_from_ligovka"],
+    automation_condition=dg.AutomationCondition.eager(),
+)
+def move_ligovka_rates_to_dv(context):
+    '''Загружает данные из stage.cash_exchange_rates в Data Vault структуру'''
+    
+    db_params = {
+        "host": getenv("POSTGRES_HOST"),
+        "port": getenv("POSTGRES_PORT"),
+        "database": getenv("DATA_DB_NAME"),
+        "user": getenv("DATA_DB_USER"),
+        "password": getenv("DATA_DB_PASS")
+    }
+
+    try:
+        with connect(**db_params) as conn:
+            with conn.cursor() as cur:
+                # Создаем Hub-таблицы, если они не существуют
+                cur.execute(HUB_CURRENCY_PAIR_SQL)
+                cur.execute(HUB_RATE_TYPE_SQL)
+
+                # Создаем Link-таблицу, если она не существует
+                cur.execute(LINK_EXCHANGE_RATE_SQL)
+
+                # Создаем Satellite-таблицу, если она не существует
+                cur.execute(SAT_EXCHANGE_RATE_VALUE_SQL)
+
+                # Вставляем данные из staging в Data Vault
+                # TODO: проверить, сколько строк реально загружается в таблицу Satellite и доработать вывод в лог
+                cur.execute(MOVE_LIGOVKA_RATES_TO_DV)
+                
+                conn.commit()
+                context.log.info(f"Данные из {LIGOVKA_SITE_NAME} успешно загружены в Data Vault")
+
+    except Exception as e:
+        raise Exception(f"Ошибка при загрузке данных в Data Vault: {str(e)}")
+
+    return dg.MaterializeResult()
