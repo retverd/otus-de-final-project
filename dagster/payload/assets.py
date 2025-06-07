@@ -260,6 +260,12 @@ def create_data_marketing_views(context):
                 # Создаем схему Data Marketing, если она не существует
                 cur.execute(CREATE_DATA_MARKETING_SCHEMA_SQL)
 
+                # Выдаем права на схему Data Marketing пользователю ClickHouse
+                ch_user_name = getenv("CLICKHOUSE_PG_USER")
+                cur.execute(f'GRANT USAGE ON SCHEMA {DATA_MARKETING_SCHEMA} TO {ch_user_name}')
+                cur.execute(f'GRANT SELECT ON ALL TABLES IN SCHEMA {DATA_MARKETING_SCHEMA} TO {ch_user_name}')
+                cur.execute(f'ALTER DEFAULT PRIVILEGES IN SCHEMA {DATA_MARKETING_SCHEMA} GRANT SELECT ON TABLES TO {ch_user_name}')
+
                 # Создаем представление, если оно не существует
                 # TODO: проверить, было ли реально создано представление и доработать вывод в лог
                 cur.execute(VW_EXCHANGE_RATE_VALUES_SQL)

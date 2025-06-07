@@ -2,8 +2,10 @@
 !include <C4/C4_Container>
 
 title
-  <b>Предварительная архитектура итогового проекта</b>
+  <b>Архитектура итогового проекта</b>
 end title
+
+AddRelTag("direct", $textColor="LightGray", $lineColor="LightGray")
 
 System_Boundary(cbr, "Сайт ЦБ РФ") {
     System_Ext(cbr_api, "Открытое API")
@@ -13,15 +15,15 @@ System_Boundary(exch, "Сайт обменника") {
     System_Ext(exch_page, "Веб-страница с курсами")
 }
 
-System_Boundary(prj, "Проект") {
+System_Boundary(prj, "Проект (Docker)") {
     System_Boundary(orch, "Dagster") {
         System(asset_e, "Extraction", "Извлечение данных из источников и размещение в Staging-таблицы")
         System(asset_t, "Transformation", "Трансформация данных из Staging-таблиц в Data Vault")
-        System(asset_l, "Load", "Загрузка данных из Data Vault в витрины")
     }
     SystemDb(postgres, "PostgreSQL", "OLTP хранилище"){
         SystemDb(stage, "Stage", "Данные из внешних источников как есть")
         SystemDb(dv, "Data Vault", "Связанные нормализованные данные")
+        SystemDb(dm, "Data Market", "Подготовленные витрины данных")
     }
     SystemDb(clickhouse, "Clickhouse", "OLAP хранилище")
     System(metabase, "Metabase", "Средство визуализации данных")
@@ -36,10 +38,10 @@ Rel(asset_e, stage, "Сохранение данных", "ORM")
 Rel(stage, asset_t, "Чтение данных", "ORM")
 Rel(asset_t, dv, "Сохранение данных", "ORM")
 
-Rel(dv, asset_l, "Чтение данных", "ORM")
-Rel(asset_l, clickhouse, "Сохранение данных", "ORM")
+Rel(dv, dm, "Чтение данных", "SQL", $tags="direct")
+Rel_D(dm, clickhouse, "Чтение данных", "SQL")
 
 Rel_D(clickhouse, metabase, "Чтение данных", "JDBC")
-Rel_L(user, metabase, "Запрос визуализации", "https")
+Rel_R(metabase, user, "Запрос визуализации", "https")
 
 @enduml
