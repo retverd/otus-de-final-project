@@ -2,15 +2,24 @@
 LIGOVKA_SITE_NAME = 'ligovka.ru'
 CBR_SITE_NAME = 'cbr.ru'
 
+# Константы с названиями схем в БД
+STAGE_SCHEMA = 'stage'
+DATA_VAULT_SCHEMA = 'data_vault'
+
+# Константы с sql-процедурами для создания схем в БД
+CREATE_STAGE_SCHEMA_SQL = f'CREATE SCHEMA IF NOT EXISTS {STAGE_SCHEMA};'
+
+CREATE_DATA_VAULT_SCHEMA_SQL = f'CREATE SCHEMA IF NOT EXISTS {DATA_VAULT_SCHEMA};'
+
 # Константы с названиями таблиц в Stage
-STAGE_CASH_EXCHANGE_RATES_TABLE = 'stage.cash_exchange_rates'
-STAGE_CBR_EXCHANGE_RATES_TABLE = 'stage.cbr_exchange_rates'
+STAGE_CASH_EXCHANGE_RATES_TABLE = f'{STAGE_SCHEMA}.cash_exchange_rates'
+STAGE_CBR_EXCHANGE_RATES_TABLE = f'{STAGE_SCHEMA}.cbr_exchange_rates'
 
 # Константы с полными именами таблиц Data Vault
-HUB_CURRENCY_PAIR_TABLE = 'data_vault.hub_currency_pair'
-HUB_RATE_TYPE_TABLE = 'data_vault.hub_rate_type'
-LINK_EXCHANGE_RATE_TABLE = 'data_vault.link_exchange_rate'
-SAT_EXCHANGE_RATE_VALUE_TABLE = 'data_vault.sat_exchange_rate_value'
+HUB_CURRENCY_PAIR_TABLE = f'{DATA_VAULT_SCHEMA}.hub_currency_pair'
+HUB_RATE_TYPE_TABLE = f'{DATA_VAULT_SCHEMA}.hub_rate_type'
+LINK_EXCHANGE_RATE_TABLE = f'{DATA_VAULT_SCHEMA}.link_exchange_rate'
+SAT_EXCHANGE_RATE_VALUE_TABLE = f'{DATA_VAULT_SCHEMA}.sat_exchange_rate_value'
 
 # Константы с sql-процедурами для создания Stage таблиц
 STAGE_CASH_EXCHANGE_RATES_TABLE_SQL = f'''

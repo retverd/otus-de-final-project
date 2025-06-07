@@ -63,7 +63,10 @@ def fetch_usd_rate_from_ligovka(context):
         # conn = context.resources.postgres
         with connect(**db_params) as conn:
             with conn.cursor() as cur:
-                # Создаем таблицу с правильными типами данных
+                # Создаем схему Stage, если она не существует
+                cur.execute(CREATE_STAGE_SCHEMA_SQL)
+
+                # Создаем таблицу с правильными типами данных, если она не существует
                 cur.execute(STAGE_CASH_EXCHANGE_RATES_TABLE_SQL)
                 cur.execute(
                     f'INSERT INTO {STAGE_CASH_EXCHANGE_RATES_TABLE} (exchange_name, currency_code, purchase_rate, sale_rate) VALUES (%s, %s, %s, %s)',
@@ -122,7 +125,10 @@ def fetch_usd_rate_from_cbr(context):
         # Подключаемся к PostgreSQL
         with connect(**db_params) as conn:
             with conn.cursor() as cur:
-                # Создаем таблицу с правильными типами данных
+                # Создаем схему Stage, если она не существует
+                cur.execute(CREATE_STAGE_SCHEMA_SQL)
+
+                # Создаем таблицу с правильными типами данных, если она не существует
                 cur.execute(STAGE_CBR_EXCHANGE_RATES_TABLE_SQL)
                 cur.execute(
                     f'INSERT INTO {STAGE_CBR_EXCHANGE_RATES_TABLE} (exchange_name, currency_code, rate_date, rate) VALUES (%s, %s, %s, %s)',
@@ -161,6 +167,9 @@ def move_cbr_rates_to_dv(context):
     try:
         with connect(**db_params) as conn:
             with conn.cursor() as cur:
+                # Создаем схему Data Vault, если она не существует
+                cur.execute(CREATE_DATA_VAULT_SCHEMA_SQL)
+                
                 # Создаем Hub-таблицы, если они не существуют
                 cur.execute(HUB_CURRENCY_PAIR_SQL)
                 cur.execute(HUB_RATE_TYPE_SQL)
@@ -203,6 +212,9 @@ def move_ligovka_rates_to_dv(context):
     try:
         with connect(**db_params) as conn:
             with conn.cursor() as cur:
+                # Создаем схему Data Vault, если она не существует
+                cur.execute(CREATE_DATA_VAULT_SCHEMA_SQL)
+                
                 # Создаем Hub-таблицы, если они не существуют
                 cur.execute(HUB_CURRENCY_PAIR_SQL)
                 cur.execute(HUB_RATE_TYPE_SQL)
