@@ -1,2 +1,2 @@
-# Импортируем defs из assets
-from .assets import defs
+# Импортируем defs из definitions
+from .definitions import defs
